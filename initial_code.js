@@ -42,19 +42,29 @@ function populateNavLinks(){
 	//- display text
 	//- onmousedown="alert(1)" 
 	
-	parent.innerHTML = '';
+	//TODOL: First look for old and delete listeners
+		parent.innerHTML = '';
+	
 		
 	for (var i = 0; i < sheet_tags.length; i++) {	
 		div_tag = document.createElement('div');
-		sheet_name = sheet_tags[i].textContent;
+		let sheet_name = sheet_tags[i].textContent;
 		div_tag.textContent = sheet_name;
-		div_tag.onmousedown = `clickSheet${sheet_name}`;
+		//Not allowed
+		//div_tag.onmousedown = `clickSheet(${sheet_name})`;
 		parent.appendChild(div_tag);
+		//
+		div_tag.addEventListener("click",function(){
+			console.log("wtf batman");
+    		clickSheet(sheet_name);
+			});
+
 	}
 	
 }
 
 function clickSheet(sheet_name){
+console.log(`Running click sheet for ${sheet_name}`);
 
 //   In this approach we click on the <div> tags that are in a container
 //   that pops up when you click on the all sheets list. An alternative
@@ -70,36 +80,6 @@ for (var i = 0; i < sheet_elements.length; i++) {
   	}
 }
 }
-
-
-/*
-//Register sheet link creation
-//-------------------------------------------
-all_sheets_button = document.querySelector('.docs-sheet-all');
-fakeClick(all_sheets_button)
-
-//Closing popup by clicking elsewhere
-//-------------------------------------------------------
-//Not sure why this is necessary
-//Without it looked like the click would impact what sheet
-//was highlighted on the popup but wouldn't cause the sheet to change
-bottom_bar = document.getElementById('grid-bottom-bar');
-fakeClick(bottom_bar)
-
-//Retrieval of sheet options and clicking
-//---------------------------------------------
-sheet_name_holder = document.querySelector('.docs-menu-hide-mnemonics');
-sheet_elements = sheet_name_holder.getElementsByClassName('goog-menuitem')
-
-for (var i = 0; i < sheet_elements.length; i++) {
-	if (sheet_elements[i].textContent == sheet_name){
-    	fakeClick(sheet_elements[i]);
-    	break;
-  	}
-}
-*/
-
-
 
 
 function openNavDisplay(){
