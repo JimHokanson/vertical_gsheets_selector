@@ -1,0 +1,14 @@
+ {
+    "name": "Vertical Sheet Tabs",
+    "version": "1.0",
+    "description": "Allows sheet navigation with vertical sheet tabs!",
+    "manifest_version": 2,
+    "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/spreadsheets/*"],
+      "run_at": "document_idle",
+      "js": ["verticalSheetTabs.js"]
+    }
+    ]
+    
+  }
