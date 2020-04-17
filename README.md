@@ -20,4 +20,4 @@ The software available on this website are provided "as is" without warranty of 
 
 This is my first js project and currently the code needs to be cleaned up and documented. I still have a few features I want to add like listening for sheet deletions, renames, and selections from the main horizontal selector. I don't attempt to manipulate the data in the sheet in anyway, but still, use at your own risk.
 
-![Example screenshot][example01.png]
+![Example screenshot](example01.png)
