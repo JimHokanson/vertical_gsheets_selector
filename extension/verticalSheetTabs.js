@@ -27,7 +27,7 @@ Next steps
 	//	     - jim-links-container (ID)
 
 
-//Delete, rename
+//Delete, rename .docs-sheet-tab-menu
 <div class="goog-menu goog-menu-vertical docs-sheet-tab-menu goog-menu-noicon docs-menu-hide-mnemonics" role="menu" aria-haspopup="true" style="user-select: none; visibility: visible; left: 205.313px; top: 79.9827px; display: none;">
    <div class="goog-menuitem" role="menuitem" id=":z" style="user-select: none;">
       <div class="goog-menuitem-content" style="user-select: none;">Delete</div>
@@ -38,7 +38,12 @@ Next steps
    
 
 //How do we know what's selected??
+//Doesn't exist until after clicking ...
 has class docs-sheet-active-tab
+
+//
+<div class="docs-sheet-container-bar goog-toolbar goog-inline-block" role="toolbar" style="user-select: none; width: 916px;" aria-activedescendant=":1u">
+   <div class="goog-inline-block docs-sheet-tab docs-material" role="button" aria-expanded="false" tabindex="0" aria-haspopup="true" id=":y">
 
 
 
@@ -95,6 +100,8 @@ function populateNavLinks(){
 		var sourceTag = sheetTags[i];
 		var spanTag = sourceTag.querySelector('.docs-sheet-tab-name');
 		let sheetName = spanTag.textContent;
+		
+		tag.setAttribute('id','sidebar-' + sheetName);
 		tag.textContent = sheetName;
 		tag.style.display = 'block';
 		tag.style.width = "100%";
@@ -126,17 +133,21 @@ function populateNavLinks(){
 }
 
 function setActive(tag){
-  tag.style.backgroundColor = "#FFF";
-  tag.style.color = "#188038";
-  tag.style.cursor = "default";
-  activeTag = tag;
+  if (tag){
+      tag.style.backgroundColor = "#FFF";
+      tag.style.color = "#188038";
+      tag.style.cursor = "default";
+      activeTag = tag;
+  }
 }
 
 function removeActive(){
-  activeTag.style.backgroundColor = '#f1f3f4';
-  activeTag.style.color = 'black';
-  activeTag.style.cursor = "pointer";
-  activeTag = null;
+  if (activeTag){
+  	activeTag.style.backgroundColor = '#f1f3f4';
+  	activeTag.style.color = 'black';
+  	activeTag.style.cursor = "pointer";
+  	activeTag = null;
+  }
 }
 
 function clickSheet(sheet_name){
@@ -408,6 +419,43 @@ function windowResized(){
   resizeSidebar(false,false,true)
 }
 
+function sheetMenuPopupSelected(event){
+console.log(event);
+}
+
+function sheetSelected(event){
+  if (event.button == 0){
+  	//0 - left click
+  	 var tag = event.target;
+  	 //console.log(tag)
+  	 //If we use textContent we sometimes get a hidden leading 0
+  	 var sheetName = tag.innerText;
+  	 //console.log(sheetName) 
+  	 var sidebarTag = document.getElementById('sidebar-' + sheetName);
+  	 //console.log(sidebarTag) 	 
+  	  	 
+  	 removeActive();
+	 setActive(sidebarTag);
+  }
+  
+  //TODO: Handle the right click menu
+  //- rename
+  //- delete
+  //- reorder
+  //
+  //For now the simplest would be to register a listener on the menu
+  //then redraw the sidebar
+  
+  
+  //button = 2 - right click menu shown
+  //button = 1 - left click - change sheet
+  //srcElement
+  //target
+  //toElement
+}
+
+
+
 
 var vertSheetsMain;
 (vertSheetsMain = function testLoad(){
@@ -426,5 +474,10 @@ var vertSheetsMain;
   	
   window.addEventListener("resize", windowResized);
   
+  var sheetContainer = document.querySelector('.docs-sheet-container-bar');
+  //var sheetMenu = document.querySelector('.docs-sheet-tab-menu');
+  
+  sheetContainer.addEventListener("mousedown", sheetSelected);
+    
   console.log('nope?')
 })();
