@@ -12,7 +12,7 @@ Next steps
 3. resize by dragging
 4. delete/rename listener
 5. add sheet listener
-6. 
+6. fix menu loading - run delayed check instead of fixed wait
 
 
 //Sidebar structure
@@ -37,14 +37,20 @@ Next steps
    </div>
    
 
-//How do we know what's selected??
-//Doesn't exist until after clicking ...
-has class docs-sheet-active-tab
 
-//
+//container for the sheets
 <div class="docs-sheet-container-bar goog-toolbar goog-inline-block" role="toolbar" style="user-select: none; width: 916px;" aria-activedescendant=":1u">
    <div class="goog-inline-block docs-sheet-tab docs-material" role="button" aria-expanded="false" tabindex="0" aria-haspopup="true" id=":y">
 
+//toggle side panel
+//<div class="companion-collapser-button-container" aria-label="Toggle side panel" role="navigation">
+   <div class="app-switcher-button companion-collapser-button" aria-pressed="false" role="button" aria-label="Hide side panel" tabindex="0" style="user-select: none;">
+   
+   
+//sheet dropdown
+//<div class="docs-icon goog-inline-block docs-sheet-tab-dropdown" aria-hidden="true">
+   <div class="docs-icon-img-container docs-icon-img goog-inline-block docs-icon-arrow-dropdown">&nbsp;</div>
+</div>
 
 
 
@@ -54,6 +60,7 @@ var menuIsHidden = false;
 var gridHeight;
 var n_tries = 0;
 var activeTag;
+var sheetMenuListenerInitialized = false;
     
 function fakeClick(el) {
 	//https://stackoverflow.com/questions/61090920/click-all-sheets-in-google-sheets-using-chrome-extension/61091451#61091451
@@ -90,11 +97,10 @@ function populateNavLinks(){
 	parent.innerHTML = '';
 	activeTag = null;
 	
-	console.log('asdf');
-	console.log(sheetTags.length);
+	//console.log(sheetTags.length);
 	
 	
-		
+	//todo whitespace only will cause collapse of div
 	for (var i = 0; i < sheetTags.length; i++) {
 		let tag = document.createElement('button');
 		var sourceTag = sheetTags[i];
@@ -420,23 +426,122 @@ function windowResized(){
 }
 
 function sheetMenuPopupSelected(event){
-console.log(event);
+  console.log('yoyoyo');
+  
+  //This doesn't work because we are racing ...
+  //
+  //Need to handle actual instruction ...
+  //
+  //- move left
+  //- move right
+  //- delete
+  //- rename
+  
+  //Hack for now ... - won't work for rename ...
+  setTimeout(populateNavLinks,1000);
+  
+  //populateNavLinks();
 }
 
+//https://stackoverflow.com/questions/23925520/javascript-traverse-dom-until-class-is-reached
+function closestClass(el, cls) {
+    while (el  && el !== document) {
+        if (el.classList.contains(cls)) return el;
+        el = el.parentNode;
+    }
+    return null;
+}
+
+function waitUntilValid(className,timeout,fcn){
+//timeout in s
+//.docs-sheet-tab-menu
+n_tries = 0;
+var pauseDuration = 200;
+var nMax = Math.ceil(timeout*1000/pauseDuration);
+
+var target = '.' + className;
+
+waitUntilValidHelper(target,nMax,0,fcn)
+}
+
+function waitUntilValidHelper(target,nMax,i,fcn,pauseDuration){
+
+   tag = document.querySelector(target);
+   if (tag){
+      return fcn(tag);
+   }else{
+     i = i + 1;
+     if (i > nMax){
+       //Then what ...
+     }else{
+       setTimeout(function(){waitUntilValidHelper(target,nMax,i,fcn,pauseDuration)},pauseDuration);
+     }
+   }
+}
+
+function initializeSheetMenuListener(){
+  //console.log('trying to listen')
+  waitUntilValid('docs-sheet-tab-menu',5,initializeSheetMenuListener2);
+}
+
+function initializeSheetMenuListener2(menu){
+  //console.log(menu);
+  menu.addEventListener("mousedown",sheetMenuPopupSelected);
+  
+  //It seems like the menu may not be persistent, so we need to find it each time :/
+  //sheetMenuListenerInitialized = true;
+}
+
+
+
 function sheetSelected(event){
-  if (event.button == 0){
+
+  //left click
+  //   - make sheet active
+  //   - bring out dropdown if on active sheet already
+  //right click
+  //   - make active and show menu
+  
+  
+  //0 - left click
+  //2 - right click
+  //1 - middle? what happens then?
+  
+  //if (event.button == 0){
   	//0 - left click
   	 var tag = event.target;
   	 //console.log(tag)
-  	 //If we use textContent we sometimes get a hidden leading 0
-  	 var sheetName = tag.innerText;
-  	 //console.log(sheetName) 
-  	 var sidebarTag = document.getElementById('sidebar-' + sheetName);
-  	 //console.log(sidebarTag) 	 
-  	  	 
-  	 removeActive();
-	 setActive(sidebarTag);
-  }
+  	   	 
+  	 if (tag.classList.contains('docs-sheet-tab-dropdown')
+  	 	|| tag.classList.contains('docs-icon-arrow-dropdown')){
+  	 	//menu click on active sheet - name not valid
+  	 	//Note - this could close if the menu is currently visible ...
+  	 	if (!sheetMenuListenerInitialized){
+  	 	   initializeSheetMenuListener();
+  	 	}
+  	 }else{
+  	 	 //Unfortunately it is possible to click on things that are not the span with the name
+  	 	 //Noteably : <div class="docs-sheet-tab-color" style="background: transparent;"></div>
+  	 	 //We could hard code in this check, but I am going to just go to the parent and look down
+  	     tag = closestClass(tag,"docs-sheet-tab");
+  	     //If we use textContent we sometimes get a hidden leading 0
+  	     var sheetName = tag.innerText;
+  	     //console.log(sheetName) 
+  	     var sidebarTag = document.getElementById('sidebar-' + sheetName);
+  	     //console.log(sidebarTag) 	 
+  	 
+  	     removeActive();
+	     setActive(sidebarTag);
+	         
+	     if (event.button == 2 && !sheetMenuListenerInitialized){
+	       initializeSheetMenuListener();
+	     }
+  	 }
+  	 
+
+  //}
+  
+  //note a right click makes it active
   
   //TODO: Handle the right click menu
   //- rename
