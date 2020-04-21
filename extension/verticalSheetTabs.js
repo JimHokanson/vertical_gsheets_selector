@@ -122,25 +122,54 @@ function populateNavLinks(){
 	for (var i = 0; i < sheetTags.length; i++) {
 		//TODO: button has style attached that we may not want
 		//Consider using a div instead ...
-		let tag = document.createElement('button');
+
 		var sourceTag = sheetTags[i];
 		var spanTag = sourceTag.querySelector('.docs-sheet-tab-name');
 		let sheetName = spanTag.textContent;
 
+		let tag = document.createElement('div');
+		//For manipulation later ...
 		tag.setAttribute('id','sidebar-' + sheetName);
-		tag.innerHTML = '<span style="cursor: ew-resize; width: 5px; display: inline-block;">&nbsp;</span><span style="padding-left: 5px; display: inline-block;">' + sheetName + '</span>';
-		//tag.textContent = sheetName;
-		tag.style.paddingLeft = '0';
-		tag.style.borderWidth = "1px 1px 1px 0px";
-		//tag.style.display = 'block';
-		tag.style.width = "100%";
-		tag.style.textAlign = "left";
-		//tag.style.cssFloat = "left";
-		tag.style.overflow = "hidden";
-		tag.style.outline = "none";
+		tag.style.display = 'flex'; //For left right display of t2,t3
+		tag.style.overflow = 'hidden'; //If the sheet name is too long hide it until user resizes
 		tag.style.backgroundColor = '#f1f3f4';
-		tag.style.cursor = "pointer";
-		tag.style['whiteSpace'] = "nowrap";
+		tag.style['whiteSpace'] = 'nowrap';
+		tag.style.cursor = 'pointer';
+		var t2 = document.createElement('div');
+		var t3 = document.createElement('div');
+		t2.setAttribute('class','vsheet-left');
+		t2.style.cursor = 'ew-resize';
+		t2.style.width = '5px';
+		t2.style.borderWidth = '0 0 1px 0';
+		t2.style.borderStyle = 'solid';
+		t2.style.display = 'inline-block';
+		//Not sure why width is not being respected with only 1 space
+		//TODO: does min-height: 1px work?
+		//https://stackoverflow.com/questions/4171286/how-to-make-a-div-with-no-content-have-a-width
+		t2.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+		t3.setAttribute('class','vsheet-right');
+		t3.style.paddingLeft = '5px';
+		t3.style.borderWidth = '0 1px 1px 0';
+		t3.style.borderStyle = 'solid';
+		t3.textContent = sheetName;
+		t3.style.display = 'block';
+		t3.style.width = '100%'; //If not there, the border shows up at the end of the word
+
+		tag.appendChild(t2);
+		tag.appendChild(t3);
+
+		//tag.innerHTML = '<span style="cursor: ew-resize; width: 5px; display: inline-block;">&nbsp;</span><span style="padding-left: 5px; display: inline-block;">' + sheetName + '</span>';
+		//tag.textContent = sheetName;
+		//tag.style.paddingLeft = '0';
+		//tag.style.borderWidth = "1px 1px 1px 0px";
+		//tag.style.display = 'block';
+		//tag.style.width = "100%";
+		//tag.style.textAlign = "left";
+		//tag.style.cssFloat = "left";
+		//tag.style.outline = "none";
+		//tag.style.backgroundColor = '#f1f3f4';
+		//tag.style.cursor = "pointer";
+		//tag.style['whiteSpace'] = "nowrap";
 
 		//has class docs-sheet-active-tab
 		//element.classList.contains(class);
@@ -195,73 +224,33 @@ function createSidebar(){
 	// 	'</div>' +
 	// 	'</div>'
 
+	//TODO: Consider writing this as js so that I can comment
+	//e.g.
+
+	//var vs = document.createElement('div');
+	//vs.setAttribute('id','vert-sidebar');
+	//vs.style.display = 'none'; //Hidden to start
+	//vs.style.position = 'absolute'; //We set position when showing (or other things)
+	//etc.
+
+
 
 	div_tag.innerHTML = '' +
 		'<div id="vert-sidebar" style="display: none; position: absolute;">' +
 			'<div style="background-color: black; width: 1px; cursor: ew-resize;" id="vert-left"></div>' +
 			'<div style="background-color: white; width: 100px" id="vert-right">' +
-				'<div id="vert-header" style="background: #616161; font-size: 15px; color: white; font-weight: bold; ' +
-				'display: flex; cursor: default; border-width: 1px 1px 0 0; border-style: solid; border-color: black;">' +
-					'<div style="cursor: ew-resize; width: 5px;">&nbsp;</div>' +
+				'<div id="vert-header" style="background: #616161; overflow: hidden; 15px; color: white; font-weight: bold; ' +
+				'display: flex; cursor: default; border-width: 1px 1px 1px 0; border-style: solid; border-color: black;">' +
+					'<div style="cursor: ew-resize; width: 5px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>' +
 					'<div style="padding: 10px 10px 10px 5px;">Sheets</div>' +
 					'<div id="vert-close" style="width: 100%; direction: rtl; padding: 10px 0px; cursor: pointer;">&nbsp; x &nbsp;</div>' +
 				'</div>' +
 				'<div id="vert-content" style="width:100%">' +
 					'<div id="jim-links-container" style="overflow-y: auto; overflow-x: hidden; height: 300px; ' +
-					'border-width: 1px 1px 1px 0; border-style: solid; box-sizing:border-box direction: ltr"></div>' +
+					'border-width: 0px 1px 1px 0; border-style: solid; box-sizing:border-box direction: ltr"></div>' +
 				'</div>' +
 			'</div>' +
 		'</div>'
-
-	//'<span style="cursor: ew-resize; width: 5px; display: inline-block;">&nbsp;</span><span style="padding-left: 5px; display: inline-block;">' + sheetName + '</span>'
-	// border-color: red;
-	// border-style: solid;
-	// border-width: 1px 1px 1px 0;
-
-//style="background: #616161; font-size: 13px; font-weight: bold; padding: 10px 0px 10px 12px: display: flex"
-// 	'<div>Sheets</div>' +
-// 	'<div style="direction: rtl">X</div>' +
-	// script-application-sidebar-header {
-	// 	background: #616161;
-	// 	border: 1px solid #616161;
-	// 	color: #fff;
-	// 	font-size: 13px;
-	// 	font-weight: bold;
-	// 	height: 15px;
-	// 	padding: 10px 0 10px 12px;
-	// 	position: relative;
-
-	// script-application-sidebar-content {
-	// 	bottom: 0;
-	// 	position: absolute;
-	// 	top: 37px;
-	// 	width: 100%;
-
-		// 	.script-application-sidebar-close {
-		// cursor: pointer;
-		// position: absolute;
-		// right: 6px;
-		// top: 8px;
-
-		// 	.docs-icon {
-		// direction: ltr;
-		// text-align: left;
-		// height: 21px;
-		// overflow: hidden;
-		// vertical-align: middle;
-		// width: 21px;
-
-
-
-	//sidebar.style.width = "auto";
-	//sidebar.style.minWidth = "100px";
-	//sidebar.style.height = "auto";
-
-
-	//var sidebarContent = document.getElementById('vert-content');
-	//sidebarContent.style.width = "100%";
-	//sidebarContent.style.borderStyle = "solid";
-
 
 	var sidebar = div_tag.firstChild;
 	var bodyTag = document.getElementsByTagName('body')[0];
