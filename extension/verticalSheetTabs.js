@@ -67,6 +67,9 @@ var sidePanelWidth;
 var n_tries = 0;
 var activeTag;
 var sheetMenuListenerInitialized = false;
+//Not sure what to make these values ...
+var sidebarMinWidth = 80;
+var sidebarMaxWidth = 500;
 
 //#endregion globals
 
@@ -87,6 +90,10 @@ var sheetMenuListenerInitialized = false;
 //------------------------------------------------------------------------------
 
 //#region Sidebar Actions
+
+function getSidebarTag(){
+	return document.getElementById('vert-sidebar');
+}
 
 function launchSideBar(){
 
@@ -136,7 +143,7 @@ function populateNavLinks(){
 		tag.style['whiteSpace'] = 'nowrap';
 		tag.style.cursor = 'pointer';
 		var t2 = document.createElement('div');
-		var t3 = document.createElement('div');
+
 		t2.setAttribute('class','vsheet-left');
 		t2.style.cursor = 'ew-resize';
 		t2.style.width = '5px';
@@ -144,9 +151,13 @@ function populateNavLinks(){
 		t2.style.borderStyle = 'solid';
 		t2.style.display = 'inline-block';
 		//Not sure why width is not being respected with only 1 space
-		//TODO: does min-height: 1px work?
-		//https://stackoverflow.com/questions/4171286/how-to-make-a-div-with-no-content-have-a-width
 		t2.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+
+		//https://stackoverflow.com/questions/4171286/how-to-make-a-div-with-no-content-have-a-width
+		//This helps but doesn't force the desired spacing ...
+		//t2.style.minHeight = '1px';
+
+		var t3 = document.createElement('div');
 		t3.setAttribute('class','vsheet-right');
 		t3.style.paddingLeft = '5px';
 		t3.style.borderWidth = '0 1px 1px 0';
@@ -154,6 +165,8 @@ function populateNavLinks(){
 		t3.textContent = sheetName;
 		t3.style.display = 'block';
 		t3.style.width = '100%'; //If not there, the border shows up at the end of the word
+		t3.style.overflow = 'hidden';
+
 
 		tag.appendChild(t2);
 		tag.appendChild(t3);
@@ -180,11 +193,11 @@ function populateNavLinks(){
 
 		parent.appendChild(tag);
 
-		tag.addEventListener("click",function(event){
-			removeActive();
-			setActive(tag);
-			clickSheet(sheetName);
-		},false);
+		// tag.addEventListener("click",function(event){
+		// 	removeActive();
+		// 	setActive(tag);
+		// 	clickSheet(sheetName);
+		// },false);
 
 	}
 
@@ -194,7 +207,7 @@ function createSidebar(){
 	//to hide, set display to none
 
 	//Creates a div tag at the end of the body
-	var div_tag = document.createElement('div');
+	//var div_tag = document.createElement('div');
 
 	//sidebar
 	//   - sidebar-header
@@ -205,56 +218,110 @@ function createSidebar(){
 	//	 - sidebar-content
 	//	     - jim-links-container (ID)
 
-	//Original
-	// div_tag.innerHTML = '' +
-	// 	'<div class="script-application-sidebar" id="vert-sidebar" tabindex="0"' +
-	// 	'role="region" docs-stickyfocus="true" style="top: 64px; height: auto;' +
-	// 	'right: 56px; display: none;">' +
-	// 	'<div class="script-application-sidebar-header" id="vert-header">' +
-	// 	'<div class="script-application-sidebar-title">Sheets</div>' +
-	// 	'<div class="script-application-sidebar-close" tabindex="0" title="Close sidebar"' +
-	// 	'aria-label="Close sidebar" role="button">' +
-	// 	'<div class="docs-icon goog-inline-block">' +
-	// 	'<div class="docs-icon-img-container docs-icon-img docs-icon-close-white" aria-hidden="true">&nbsp;</div>' +
-	// 	'</div>' +
-	// 	'</div>' +
-	// 	'</div>' +
-	// 	'<div class="script-application-sidebar-content" id="vert-content">' +
-	// 	'<div id="jim-links-container" style="background-color: white; height: 300px; border: 1px solid; overflow: auto"></div>' +
-	// 	'</div>' +
-	// 	'</div>'
+
 
 	//TODO: Consider writing this as js so that I can comment
 	//e.g.
 
-	//var vs = document.createElement('div');
-	//vs.setAttribute('id','vert-sidebar');
-	//vs.style.display = 'none'; //Hidden to start
-	//vs.style.position = 'absolute'; //We set position when showing (or other things)
-	//etc.
+	var vs = document.createElement('div');
+	vs.setAttribute('id','vert-sidebar');
+	vs.style.display = 'none'; //Hidden to start, will go to flex
+	vs.style.position = 'absolute'; //We set position when showing (or other things)
+	vs.style.width = '100px';
+
+	var vl = document.createElement('div');
+	vl.style.backgroundColor = 'black';
+	vl.style.width = '1px';
+	vl.style.cursor = 'ew-resize';
+	//hack to ensure this is shown, not sure why it is needed ...
+	vl.innerHTML = '&nsbp;&nbsp;';
+	vs.appendChild(vl);
+
+	var vr = document.createElement('div');
+	vr.style.backgroundColor = 'white';
+	vr.style.width = '100%'; //Starting width, might resize
+	vs.appendChild(vr);
+
+	var vh = document.createElement('div');
+	vh.setAttribute('id','vert-header');
+	vh.style.backgroundColor = '#616161';
+	vh.style.overflow = 'hidden';
+	vh.style.color = 'white';
+	vh.style.fontWeight = 'bold';
+	vh.style.display = 'flex';
+	vh.style.cursor = 'default';
+	vh.style.borderWidth = '1px 1px 1px 0';
+	vh.style.borderStyle = 'solid';
+	vh.style.borderColor = 'black';
+	vr.appendChild(vh);
+
+	var vh1 = document.createElement('div');
+	vh1.style.cursor = 'ew-resize';
+	vh1.style.width = '5px';
+	vh1.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+	vh.appendChild(vh1);
+
+	var vh2 = document.createElement('div');
+	vh2.style.padding = '10px 10px 10px 5px';
+	vh2.textContent = 'Sheets';
+	vh.appendChild(vh2);
+
+	var vh3 = document.createElement('div');
+	vh3.setAttribute('id','vert-close');
+	vh3.style.width = "100%";
+	vh3.style.direction = 'rtl';
+	vh3.style.padding = '10px 0';
+	vh3.style.cursor = 'pointer';
+	vh3.innerHTML = '&nbsp; x &nbsp;';
+	vh.appendChild(vh3);
+
+	//Note, I made a content area in case we add more than just the links ...
+	var vc = document.createElement('div');
+	vc.setAttribute('id','vert-content');
+	vc.style.width = '100%';
+	vr.appendChild(vc);
+
+	var jlc = document.createElement('div');
+	jlc.setAttribute('id','jim-links-container');
+	jlc.style.overflowY = 'auto'; //scroll on vertical overflow
+	jlc.style.overflowX = 'hidden';
+	jlc.style.height = '300px'; //this will change
+	jlc.style.borderWidth = '0 1px 1px 0';
+	jlc.style.borderStyle = 'solid';
+	jlc.style.boxSizing = 'border-box';
+	jlc.style.direction = 'ltr';
+	jlc.addEventListener("mousedown",vsheetJimLinksClickCallback)
 
 
+	// tag.addEventListener("click",function(event){
+	// 	removeActive();
+	// 	setActive(tag);
+	// 	clickSheet(sheetName);
+	// },false);
 
-	div_tag.innerHTML = '' +
-		'<div id="vert-sidebar" style="display: none; position: absolute;">' +
-			'<div style="background-color: black; width: 1px; cursor: ew-resize;" id="vert-left"></div>' +
-			'<div style="background-color: white; width: 100px" id="vert-right">' +
-				'<div id="vert-header" style="background: #616161; overflow: hidden; 15px; color: white; font-weight: bold; ' +
-				'display: flex; cursor: default; border-width: 1px 1px 1px 0; border-style: solid; border-color: black;">' +
-					'<div style="cursor: ew-resize; width: 5px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>' +
-					'<div style="padding: 10px 10px 10px 5px;">Sheets</div>' +
-					'<div id="vert-close" style="width: 100%; direction: rtl; padding: 10px 0px; cursor: pointer;">&nbsp; x &nbsp;</div>' +
-				'</div>' +
-				'<div id="vert-content" style="width:100%">' +
-					'<div id="jim-links-container" style="overflow-y: auto; overflow-x: hidden; height: 300px; ' +
-					'border-width: 0px 1px 1px 0; border-style: solid; box-sizing:border-box direction: ltr"></div>' +
-				'</div>' +
-			'</div>' +
-		'</div>'
+	vc.appendChild(jlc);
 
-	var sidebar = div_tag.firstChild;
+
+	// div_tag.innerHTML = '' +
+	// 	'<div id="vert-sidebar" style="display: none; position: absolute;">' +
+	// 		'<div style="background-color: black; width: 1px; cursor: ew-resize;" id="vert-left"></div>' +
+	// 		'<div style="background-color: white; width: 100px" id="vert-right">' +
+	// 			'<div id="vert-header" style="background: #616161; overflow: hidden; 15px; color: white; font-weight: bold; ' +
+	// 			'display: flex; cursor: default; border-width: 1px 1px 1px 0; border-style: solid; border-color: black;">' +
+	// 				'<div style="cursor: ew-resize; width: 5px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>' +
+	// 				'<div style="padding: 10px 10px 10px 5px;">Sheets</div>' +
+	// 				'<div id="vert-close" style="width: 100%; direction: rtl; padding: 10px 0px; cursor: pointer;">&nbsp; x &nbsp;</div>' +
+	// 			'</div>' +
+	// 			'<div id="vert-content" style="width:100%">' +
+	// 				'<div id="jim-links-container" style="overflow-y: auto; overflow-x: hidden; height: 300px; ' +
+	// 				'border-width: 0px 1px 1px 0; border-style: solid; box-sizing:border-box direction: ltr"></div>' +
+	// 			'</div>' +
+	// 		'</div>' +
+	// 	'</div>'
+
+	//var sidebar = div_tag.firstChild;
 	var bodyTag = document.getElementsByTagName('body')[0];
-	bodyTag.appendChild(sidebar);
+	bodyTag.appendChild(vs);
 
 	//Temporarily disabling - make this an id
 	close = document.getElementById('vert-close');
@@ -272,6 +339,69 @@ function showSidebar(){
 	div.style.display = 'flex';
 }
 
+function vsheetJimLinksClickCallback(event){
+	//This is the main callback for clicks on
+	//vsheet-left
+	//vsheet-right
+	//console.log('wtf2');
+	var target = event.target;
+	//console.log(target)
+	if (target.classList.contains('vsheet-right')){
+		//console.log('wtf3');
+		removeActive();
+		setActive(target);
+		clickSheet(target.textContent);
+	}else if (target.classList.contains('vsheet-left')){
+		//console.log('no idea');
+		//resize strategy ...
+		//1) initiatie resize callback
+		//console.log(event);
+		vsheetInitiateResize(event);
+		event.preventDefault();
+	}else{
+		console.log(target.classList);
+		console.log('asdfasdfasdf')
+	}
+}
+
+var startResizeX;
+var xLeftMax, xRightMax;
+
+function vsheetInitiateResize(event){
+	startResizeX = event.clientX;
+	//console.log(event);
+	document.addEventListener('mousemove', vsheetMidResize, false);
+	document.addEventListener('mouseup', vsheetFinalizeResize, false);
+}
+
+function vsheetMidResize(event){
+	//Draw moving line
+	//console.log('asdf');
+	event.preventDefault();
+}
+
+function vsheetFinalizeResize(event){
+	var endResizeX = event.clientX;
+	var amountMove = startResizeX - endResizeX;
+	var sidebar = getSidebarTag();
+	var newWidth = amountMove + sidebar.offsetWidth;
+
+	var sidebarMinWidth = 80;
+	var sidebarMaxWidth = 500;
+
+	if (newWidth < sidebarMinWidth){
+		newWidth = sidebarMinWidth;
+	}else if (newWidth > sidebarMaxWidth){
+		newWidth = sidebarMaxWidth;
+	}
+
+	sidebar.style.width = "" + newWidth + "px";
+
+	//console.log(endResizeX)
+	//console.log(startResizeX - endResizeX);
+	document.removeEventListener('mousemove', vsheetMidResize, false);
+	document.removeEventListener('mouseup', vsheetFinalizeResize, false);
+}
 
 
 //#endregion
