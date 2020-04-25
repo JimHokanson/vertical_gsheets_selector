@@ -9,13 +9,20 @@ Next steps
 ----------------------------------
 1. DONE Handle hiding of the side panel - might require refactoring input to resize
 2. DONE Add listener for bottom sheet select updating sidebar
-3. resize by dragging
+3. DONE resize by dragging
 	- cursor is in place for action - needs callbacks
 4. delete/rename listener
-5. add sheet listener
+5. DONE "add sheet" listener
+   - add sheet puts a sheets to the right of the current sheet
 6. DONE fix menu loading - run delayed check instead of fixed wait
-7. move listeners to parents of vert-sheets
-
+7. DONE move listeners to parents of vert-sheets
+8. DONE fix clicking - color the whole sheet
+9. DONE add indictor for resizing
+10. try resizing sheet text on dragging instead of showing a temporary line
+11. allow resizing in empty space in sidebar ...
+12. DONE make border of sheets black to avoid strange color when selected
+13. support move sheet detection
+   - on mouse down fire a listener that looks for mouse up
 
 //Sidebar structure
 //----------------------------------
@@ -63,6 +70,10 @@ var menuIsHidden = false;
 var sideIsHidden = false;
 var gridHeight;
 var xyz = 1;
+
+//We don't hijack into any of the functions for resizing so we basically
+//need to track this at a known state, then on an event, call our code after
+//this changes value
 var sidePanelWidth;
 var n_tries = 0;
 var activeTag;
@@ -74,7 +85,8 @@ var sidebarMaxWidth = 500;
 //#endregion globals
 
 
-
+const ACTIVE_SHEET_TAB_CLASS = 'docs-sheet-active-tab';
+const HSHEET_NAME_CLASS = 'TODO'
 
 
 
@@ -113,135 +125,110 @@ function launchSideBar(){
 	resizeSidebar("init");
 }
 
+function createVSheetTag(sheetName){
+	//Creates tag but does not attach it
+	let tag = document.createElement('div');
+	//For manipulation later ...
+	tag.setAttribute('id','sidebar-' + sheetName);
+	tag.setAttribute('class','vsheet-main')
+	tag.style.display = 'flex'; //For left right display of t2,t3
+	tag.style.overflow = 'hidden'; //If the sheet name is too long hide it until user resizes
+	tag.style.backgroundColor = '#f1f3f4';
+	tag.style['whiteSpace'] = 'nowrap';
+	tag.style.cursor = 'pointer';
+	var t2 = document.createElement('div');
+
+	t2.setAttribute('class','vsheet-left');
+	t2.style.cursor = 'ew-resize';
+	t2.style.width = '5px';
+	//left - only put border on bottom
+	t2.style.borderWidth = '0 0 1px 0';
+	t2.style.borderStyle = 'solid';
+	t2.style.borderColor = 'black';
+	t2.style.display = 'inline-block';
+	//Not sure why width is not being respected with only 1 space
+	t2.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+
+	//https://stackoverflow.com/questions/4171286/how-to-make-a-div-with-no-content-have-a-width
+	//This helps but doesn't force the desired spacing ...
+	//t2.style.minHeight = '1px';
+
+	var t3 = document.createElement('div');
+	t3.setAttribute('class','vsheet-right');
+	t3.style.paddingLeft = '5px';
+	//border on right and bottom
+	t3.style.borderWidth = '0 1px 1px 0';
+	t3.style.borderStyle = 'solid';
+	t3.style.borderColor = 'black';
+	t3.textContent = sheetName;
+	t3.style.display = 'block';
+	t3.style.width = '100%'; //If not there, the border shows up at the end of the word
+	t3.style.overflow = 'hidden';
+	t3.style.fontWeight = 'bold';
+
+
+	tag.appendChild(t2);
+	tag.appendChild(t3);
+
+	return tag;
+}
+
 function populateNavLinks(){
 
 	var parent = getVSheetsHolder();
 	var sheetTags = document.getElementsByClassName('docs-sheet-tab');
 
-	//TODO: First look for old and delete listeners
 	parent.innerHTML = '';
 	activeTag = null;
 
-	//console.log(sheetTags.length);
-
-
-	//todo whitespace only will cause collapse of div
 	for (var i = 0; i < sheetTags.length; i++) {
-		//TODO: button has style attached that we may not want
-		//Consider using a div instead ...
 
 		var sourceTag = sheetTags[i];
 		var spanTag = sourceTag.querySelector('.docs-sheet-tab-name');
 		let sheetName = spanTag.textContent;
 
-		let tag = document.createElement('div');
-		//For manipulation later ...
-		tag.setAttribute('id','sidebar-' + sheetName);
-		tag.style.display = 'flex'; //For left right display of t2,t3
-		tag.style.overflow = 'hidden'; //If the sheet name is too long hide it until user resizes
-		tag.style.backgroundColor = '#f1f3f4';
-		tag.style['whiteSpace'] = 'nowrap';
-		tag.style.cursor = 'pointer';
-		var t2 = document.createElement('div');
+		var newTag = createVSheetTag(sheetName)
 
-		t2.setAttribute('class','vsheet-left');
-		t2.style.cursor = 'ew-resize';
-		t2.style.width = '5px';
-		t2.style.borderWidth = '0 0 1px 0';
-		t2.style.borderStyle = 'solid';
-		t2.style.display = 'inline-block';
-		//Not sure why width is not being respected with only 1 space
-		t2.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-
-		//https://stackoverflow.com/questions/4171286/how-to-make-a-div-with-no-content-have-a-width
-		//This helps but doesn't force the desired spacing ...
-		//t2.style.minHeight = '1px';
-
-		var t3 = document.createElement('div');
-		t3.setAttribute('class','vsheet-right');
-		t3.style.paddingLeft = '5px';
-		t3.style.borderWidth = '0 1px 1px 0';
-		t3.style.borderStyle = 'solid';
-		t3.textContent = sheetName;
-		t3.style.display = 'block';
-		t3.style.width = '100%'; //If not there, the border shows up at the end of the word
-		t3.style.overflow = 'hidden';
-
-
-		tag.appendChild(t2);
-		tag.appendChild(t3);
-
-		//tag.innerHTML = '<span style="cursor: ew-resize; width: 5px; display: inline-block;">&nbsp;</span><span style="padding-left: 5px; display: inline-block;">' + sheetName + '</span>';
-		//tag.textContent = sheetName;
-		//tag.style.paddingLeft = '0';
-		//tag.style.borderWidth = "1px 1px 1px 0px";
-		//tag.style.display = 'block';
-		//tag.style.width = "100%";
-		//tag.style.textAlign = "left";
-		//tag.style.cssFloat = "left";
-		//tag.style.outline = "none";
-		//tag.style.backgroundColor = '#f1f3f4';
-		//tag.style.cursor = "pointer";
-		//tag.style['whiteSpace'] = "nowrap";
-
-		//has class docs-sheet-active-tab
-		//element.classList.contains(class);
-
-		if (sourceTag.classList.contains('docs-sheet-active-tab')){
-			setActive(tag);
+		//TODO: Make constant ...
+		if (sourceTag.classList.contains(ACTIVE_SHEET_TAB_CLASS)){
+			setActive(newTag);
 		}
 
-		parent.appendChild(tag);
-
-		// tag.addEventListener("click",function(event){
-		// 	removeActive();
-		// 	setActive(tag);
-		// 	clickSheet(sheetName);
-		// },false);
+		parent.appendChild(newTag);
 
 	}
 
 }
 
 function createSidebar(){
-	//to hide, set display to none
 
-	//Creates a div tag at the end of the body
-	//var div_tag = document.createElement('div');
-
-	//sidebar
-	//   - sidebar-header
-	//	     - sidebar-title
-	//		 - sidebar-close
-	//			 - docs-icon goog-inline-block
-	//			     - docs-icon-close-white
-	//	 - sidebar-content
-	//	     - jim-links-container (ID)
-
-
-
-	//TODO: Consider writing this as js so that I can comment
-	//e.g.
-
+	//var sidebar
 	var vs = document.createElement('div');
 	vs.setAttribute('id','vert-sidebar');
 	vs.style.display = 'none'; //Hidden to start, will go to flex
 	vs.style.position = 'absolute'; //We set position when showing (or other things)
 	vs.style.width = '100px';
 
+	//var left - we might get rid of this and move it's functionality into
+	//divs
 	var vl = document.createElement('div');
 	vl.style.backgroundColor = 'black';
-	vl.style.width = '1px';
+	//Sometimes 1px was showing as 0.985 or something like that and thus
+	//wasn't being rendered ...
+	vl.style.width = '2px';
 	vl.style.cursor = 'ew-resize';
 	//hack to ensure this is shown, not sure why it is needed ...
-	vl.innerHTML = '&nsbp;&nbsp;';
+	vl.innerHTML = '&nsbp;&nbsp;&nsbp;&nbsp;';
+	vl.addEventListener('mousedown',vsheetInitiateResize);
 	vs.appendChild(vl);
 
+	//var right
 	var vr = document.createElement('div');
 	vr.style.backgroundColor = 'white';
 	vr.style.width = '100%'; //Starting width, might resize
 	vs.appendChild(vr);
 
+	//var header
 	var vh = document.createElement('div');
 	vh.setAttribute('id','vert-header');
 	vh.style.backgroundColor = '#616161';
@@ -255,10 +242,13 @@ function createSidebar(){
 	vh.style.borderColor = 'black';
 	vr.appendChild(vh);
 
+	//var header #1
 	var vh1 = document.createElement('div');
 	vh1.style.cursor = 'ew-resize';
 	vh1.style.width = '5px';
 	vh1.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+	vh1.addEventListener('mousedown',vsheetInitiateResize);
+	//vh1.addEventListener(vsheetInitiateResize);
 	vh.appendChild(vh1);
 
 	var vh2 = document.createElement('div');
@@ -286,44 +276,33 @@ function createSidebar(){
 	jlc.style.overflowY = 'auto'; //scroll on vertical overflow
 	jlc.style.overflowX = 'hidden';
 	jlc.style.height = '300px'; //this will change
+	//Top right bottom left
+	//TODO: Both borders look bad in overflow or non-overflow case
+	//double border on bottom on overflow
+	//double border on right when no overflow
 	jlc.style.borderWidth = '0 1px 1px 0';
 	jlc.style.borderStyle = 'solid';
 	jlc.style.boxSizing = 'border-box';
 	jlc.style.direction = 'ltr';
 	jlc.addEventListener("mousedown",vsheetJimLinksClickCallback)
 
-
-	// tag.addEventListener("click",function(event){
-	// 	removeActive();
-	// 	setActive(tag);
-	// 	clickSheet(sheetName);
-	// },false);
-
 	vc.appendChild(jlc);
-
-
-	// div_tag.innerHTML = '' +
-	// 	'<div id="vert-sidebar" style="display: none; position: absolute;">' +
-	// 		'<div style="background-color: black; width: 1px; cursor: ew-resize;" id="vert-left"></div>' +
-	// 		'<div style="background-color: white; width: 100px" id="vert-right">' +
-	// 			'<div id="vert-header" style="background: #616161; overflow: hidden; 15px; color: white; font-weight: bold; ' +
-	// 			'display: flex; cursor: default; border-width: 1px 1px 1px 0; border-style: solid; border-color: black;">' +
-	// 				'<div style="cursor: ew-resize; width: 5px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>' +
-	// 				'<div style="padding: 10px 10px 10px 5px;">Sheets</div>' +
-	// 				'<div id="vert-close" style="width: 100%; direction: rtl; padding: 10px 0px; cursor: pointer;">&nbsp; x &nbsp;</div>' +
-	// 			'</div>' +
-	// 			'<div id="vert-content" style="width:100%">' +
-	// 				'<div id="jim-links-container" style="overflow-y: auto; overflow-x: hidden; height: 300px; ' +
-	// 				'border-width: 0px 1px 1px 0; border-style: solid; box-sizing:border-box direction: ltr"></div>' +
-	// 			'</div>' +
-	// 		'</div>' +
-	// 	'</div>'
 
 	//var sidebar = div_tag.firstChild;
 	var bodyTag = document.getElementsByTagName('body')[0];
 	bodyTag.appendChild(vs);
 
-	//Temporarily disabling - make this an id
+	var moveBar = document.createElement('div');
+	moveBar.setAttribute('id','vsheet-move-bar')
+	moveBar.style.backgroundColor = '#44ddff';
+	moveBar.style.width = '3px';
+	moveBar.style.height = '100px';
+	moveBar.style.position = 'absolute';
+	moveBar.style.display = 'none';
+
+	bodyTag.appendChild(moveBar);
+
+
 	close = document.getElementById('vert-close');
 	close.addEventListener("click", hideSidebar);
 }
@@ -340,43 +319,81 @@ function showSidebar(){
 }
 
 function vsheetJimLinksClickCallback(event){
-	//This is the main callback for clicks on
+	//This is the main callback for clicks on the vsheet tags
+	//
+	//Currently calls are either for resizing or clicking a sheet to navigate
 	//vsheet-left
 	//vsheet-right
-	//console.log('wtf2');
 	var target = event.target;
-	//console.log(target)
 	if (target.classList.contains('vsheet-right')){
-		//console.log('wtf3');
-		removeActive();
-		setActive(target);
+		switchToActive(target.parentNode);
 		clickSheet(target.textContent);
 	}else if (target.classList.contains('vsheet-left')){
-		//console.log('no idea');
-		//resize strategy ...
-		//1) initiatie resize callback
-		//console.log(event);
+		//Resize call
 		vsheetInitiateResize(event);
 		event.preventDefault();
 	}else{
-		console.log(target.classList);
-		console.log('asdfasdfasdf')
+		console.log('CODE FAILURE: unexpected tag option for callback')
 	}
 }
 
 var startResizeX;
 var xLeftMax, xRightMax;
 
+var sidebarMinWidth = 80;
+var sidebarMaxWidth = 500;
+
+var moveFunction;
+
 function vsheetInitiateResize(event){
 	startResizeX = event.clientX;
-	//console.log(event);
-	document.addEventListener('mousemove', vsheetMidResize, false);
+
+	var moveBar = document.getElementById('vsheet-move-bar');
+	var sidebar = getSidebarTag();
+	//top = ?
+	//left = ?
+	moveBar.style.top = sidebar.style.top;
+	moveBar.style.left = window.getComputedStyle(sidebar).left;
+	moveBar.style.height = window.getComputedStyle(sidebar).height;
+
+	var sidebar = getSidebarTag();
+	var currentWidth = sidebar.offsetWidth;
+
+	var maxGrow = sidebarMaxWidth - currentWidth;
+	var maxShrink = sidebarMinWidth - currentWidth;
+	var startLeft = parseInt(moveBar.style.left,10);
+
+	//Assignment to global so we can remove later ...
+	moveFunction = function(event){vsheetMidResize(event,moveBar,maxGrow,maxShrink,startLeft)};
+
+	document.addEventListener('mousemove', moveFunction, false);
 	document.addEventListener('mouseup', vsheetFinalizeResize, false);
+
+	moveBar.style.display = null;
 }
 
-function vsheetMidResize(event){
+var sidebarMinWidth = 80;
+var sidebarMaxWidth = 500;
+
+function vsheetMidResize(event,moveBar,maxGrow,maxShrink,startLeft){
+
+	//TODO: Consider adjusting width because
+
 	//Draw moving line
-	//console.log('asdf');
+	var endResizeX = event.clientX;
+	//Start to right, end left, value will be positive
+	//Start left, go to right, value will be negative
+	var amountMove = startResizeX - endResizeX;
+	//Consider changing color if we hit the limits ...
+	if (amountMove > maxGrow){
+		amountMove = maxGrow;
+	}else if(amountMove < maxShrink){
+		amountMove = maxShrink;
+	}
+
+	//Consider adjusting width
+
+	moveBar.style.left = "" + (startLeft - amountMove) + "px";
 	event.preventDefault();
 }
 
@@ -386,20 +403,20 @@ function vsheetFinalizeResize(event){
 	var sidebar = getSidebarTag();
 	var newWidth = amountMove + sidebar.offsetWidth;
 
-	var sidebarMinWidth = 80;
-	var sidebarMaxWidth = 500;
-
 	if (newWidth < sidebarMinWidth){
 		newWidth = sidebarMinWidth;
 	}else if (newWidth > sidebarMaxWidth){
 		newWidth = sidebarMaxWidth;
 	}
 
+	//Hide the move bar
+	var moveBar = document.getElementById('vsheet-move-bar')
+	moveBar.style.display = 'none';
+
+	//Update the width of the sidebar ...
 	sidebar.style.width = "" + newWidth + "px";
 
-	//console.log(endResizeX)
-	//console.log(startResizeX - endResizeX);
-	document.removeEventListener('mousemove', vsheetMidResize, false);
+	document.removeEventListener('mousemove', moveFunction, false);
 	document.removeEventListener('mouseup', vsheetFinalizeResize, false);
 }
 
@@ -436,6 +453,12 @@ function getVSheetByName(sheetName){
 	return document.getElementById('sidebar-' + sheetName);
 }
 
+function switchToActive(tag){
+	//Only changes things visually ...
+	removeActive();
+	setActive(tag);
+}
+
 function setActive(tag){
 	if (tag){
 		tag.style.backgroundColor = "#FFF";
@@ -466,22 +489,7 @@ function removeActive(){
 //#region Sidebar Moving/Resizing
 
 function hideOrShowMenus(){
-	//TODO: Consider making anonymous in listener in main
-	resizeSidebar("menu")
-
-	// //console.log(menuIsHidden)
-	// menuIsHidden = !menuIsHidden;
-	//
-	// //docs-header
-	// //display-none
-	// if (menuIsHidden){
-	// 	//Need to wait
-	// 	n_tries = 0;
-	// 	resizeAfterViewMenuToggles("none",menuIsHidden);
-	// }else{
-	// 	n_tries = 0;
-	// 	resizeAfterViewMenuToggles("",menuIsHidden);
-	// }
+	resizeSidebar("menu");
 }
 
 function resizeSidebar(type){
@@ -490,8 +498,6 @@ function resizeSidebar(type){
 // - initialization 'init'
 // - toggleMenuVisibility 'menu'
 // - resizing
-
-	console.log(type)
 
 	var gridScrollDiv = document.querySelector('.grid-scrollable-wrapper');
 	var companionDiv = document.querySelector('.docs-companion-app-switcher-container');
@@ -506,15 +512,12 @@ function resizeSidebar(type){
 			break;
 		case 'menu':
 			menuIsHidden = !menuIsHidden;
-			console.log('menu is hidden: ' + menuIsHidden)
 			//fall through
 		case 'resize':
-			//console.log(type);
 			resizeSideberHelperWaitForGrid(gridScrollDiv,gridHeight,0);
 			break;
 		case 'side':
 			sideIsHidden = !sideIsHidden;
-			console.log('Side is hidden: ' + sideIsHidden)
 			resizeSideberHelperWaitForSideCompanion(companionDiv,sidePanelWidth,0);
 			break;
 	}
@@ -601,33 +604,12 @@ function resizeSidebarHelper(){
 	sideBar.style.right = right + "px";
 
 	var sideContent = document.getElementById('jim-links-container');
-	//-2 is for border :/
-	sideContent.style.height = (hright2 - 2) + "px";
+	sideContent.style.height = (hright2) + "px";
 
 }
 
-
-// function resizeAfterViewMenuToggles(target,menuBoolean){
-//   var docsHeader = document.getElementById('docs-header');
-//   if (docsHeader.style.display == target){
-//     //console.log("target hidden")
-//     resizeSidebar(false,menuBoolean,false);
-//   }else{
-//     n_tries = n_tries + 1;
-//     if (n_tries > 20){
-//     	//console.log(docsHeader.style.display)
-//     	//console.log(target)
-//     }else{
-//     	//TODO: If too many then what ...
-//     	setTimeout(function() { resizeAfterViewMenuToggles(target,menuBoolean); }, 200);
-//     }
-//   }
-// }
-
 function windowResized(){
-	//console.log('resize callback called');
-	resizeSidebar('resize')
-	//resizeSidebar(false,false,true)
+	resizeSidebar('resize');
 }
 
 //#endregion
@@ -641,9 +623,96 @@ function windowResized(){
 
 //#region Bottom HSheet Code
 
+/*
+<div class="docs-sheet-button-bar goog-toolbar goog-inline-block" role="toolbar" style="user-select: none;">
+   <div class="docs-sheet-button goog-inline-block docs-sheet-add" tabindex="0" data-tooltip="Add Sheet" aria-label="Add Sheet" role="button" id=":f" style="user-select: none;">
+      <div class="goog-inline-block docs-sheet-button-outer-box" style="user-select: none;">
+         <div class="goog-inline-block docs-sheet-button-inner-box" style="user-select: none;">
+            <div class="goog-inline-block docs-icon docs-sheet-button-icon" style="user-select: none;">&nbsp;</div>
+         </div>
+      </div>
+   </div>
+   <div class="docs-sheet-menu-button goog-inline-block docs-sheet-all docs-sheet-button" tabindex="0" data-tooltip="All Sheets" aria-label="All Sheets" role="button" aria-expanded="false" aria-haspopup="true" id=":g" style="user-select: none;">
+      <div class="goog-inline-block docs-sheet-button-outer-box" style="user-select: none;">
+         <div class="goog-inline-block docs-sheet-button-inner-box" style="user-select: none;">
+            <div class="goog-inline-block docs-icon docs-sheet-button-icon" style="user-select: none;">&nbsp;</div>
+         </div>
+      </div>
+   </div>
+</div>
 
-function clickSheet(sheet_name){
-//console.log(`Running click sheet for ${sheet_name}`);
+
+ */
+function addSheetCalled(){
+	var hSheet = getHSheetByVSheet(activeTag);
+	if (hSheet) {
+		waitUntilNotActiveSheet(0, hSheet, respondToAddSheet);
+	}
+}
+
+function waitUntilNotActiveSheet(i,tag,fcn){
+	if (tag.classList.contains(ACTIVE_SHEET_TAB_CLASS)){
+		if (i < 20) {
+			setTimeout(function () {
+				waitUntilNotActiveSheet(i+1, tag, fcn)
+			},200)
+		}else{
+			console.log('TIMEOUT FAILURE for ' + 'waitUntilNotActiveSheet');
+		}
+	}else{
+		fcn(tag);
+	}
+}
+
+//This might belong in the vsheets section
+function respondToAddSheet(hsheetLastActiveTag){
+	//oldVSheetTag = getVSheetByName()
+	var hsheetActiveTag = document.querySelector('.' + ACTIVE_SHEET_TAB_CLASS);
+
+	//We might make all of this a function
+	//get sheet name from hSheet - handles this nav if necessary ...
+	var nameTag = hsheetActiveTag.querySelector('.docs-sheet-tab-name');
+	var sheetName = nameTag.textContent;
+
+	var newTag = createVSheetTag(sheetName)
+	activeTag.parentNode.insertBefore(newTag, activeTag.nextSibling);
+	switchToActive(newTag);
+}
+
+function getHSheetByVSheet(vSheet){
+	//Right now this could be either for the right portion or the parent
+
+	if (vSheet.classList.contains('vsheet-main')){
+		vSheet = vSheet.querySelector('.vsheet-right');
+	}
+
+	//vsheet-right
+	var sheetName = vSheet.textContent;
+	return getHSheetByName(sheetName,2);
+}
+
+//Could have multiple functions
+//HSheetSpanByName
+//HSheetRootByName
+function getHSheetByName(sheetName,type){
+	//Do we want:
+	//1) the span with the name
+	//2) the root tag ...
+	//docs-sheet-tab
+	var sheetElements = document.getElementsByClassName('docs-sheet-tab-name')
+	for (var i = 0; i < sheetElements.length; i++) {
+		if (sheetElements[i].textContent == sheetName){
+			if (type == 1) {
+				return sheetElements[i];
+			}else{
+				return closestClass(sheetElements[i],'docs-sheet-tab')
+			}
+		}
+	}
+	return null;
+}
+
+function clickSheet(sheetName){
 
 //   In this approach we click on the <div> tags that are in a container
 //   that pops up when you click on the all sheets list. An alternative
@@ -651,15 +720,11 @@ function clickSheet(sheet_name){
 //   that approach because I was worried that clicking might fail if
 //	 the sheet was not visible.
 
-//console.log(`Trying to click sheet ${sheet_name}`)
-
-	sheet_elements = document.getElementsByClassName('docs-sheet-tab-name')
-	for (var i = 0; i < sheet_elements.length; i++) {
-		if (sheet_elements[i].textContent == sheet_name){
-			fakeClick(sheet_elements[i]);
-			break;
-		}
+	var hSheet = getHSheetByName(sheetName,1);
+	if (hSheet){
+		fakeClick(hSheet);
 	}
+
 }
 
 function sheetMenuPopupSelected(event){
@@ -699,8 +764,6 @@ function sheetMenuPopupSelected(event){
 	//populateNavLinks();
 }
 
-
-
 /*
  * Initalizes the listener/callback function for the menu popup that gets shown
  * when right clicking on one of the sheet names at the bottom
@@ -714,7 +777,6 @@ function initializeSheetMenuListener(){
 }
 
 function initializeSheetMenuListener2(menu){
-  //console.log(menu);
   menu.addEventListener("mousedown",sheetMenuPopupSelected);
   
   //It seems like the menu may not be persistent, so we need to initialize the listener each time
@@ -757,10 +819,9 @@ function sheetSelected(event){
   	     //console.log(sheetName)
 		 var vsheetTag = getVSheetByName(sheetName);
   	     //console.log(sidebarTag)
-  	 
-  	     removeActive();
-	     setActive(vsheetTag);
-	         
+
+		 switchToActive(vsheetTag);
+
 	     if (event.button == 2 && !sheetMenuListenerInitialized){
 	       initializeSheetMenuListener();
 	     }
@@ -852,15 +913,16 @@ function delayUntilValidAddOnMenu(){
 }
 
 function delayUntilValidAddOnMenuHelper(i,nMax,pauseDuration){
+	//
+	//	wait until "manage addd-ons" is valid then create our menu option
 
 	var menuItems = document.getElementsByClassName('goog-menuitem-label');
 	var result = Array.from(menuItems).find(tag => tag.textContent == 'Manage add-ons');
 	if (result){
-		console.log("create menu i: " + i)
 		createMenu(result)
 	}else{
 		if (i+1 > nMax) {
-			console.log('Failed to create menu, timed out')
+			console.log('TIMEOUT FAILURE - Failed to create menu, timed out')
 		}else{
 			setTimeout(function(){delayUntilValidAddOnMenuHelper(i+1,nMax,pauseDuration)},pauseDuration)
 		}
@@ -895,7 +957,6 @@ function createMenu(menuTag){
 
 	//docs-menu-attached-button-above
 	//display none
-	//console.log(menu_div);
 	menuDiv.addEventListener("mousedown",function(){
 		menuHolder.classList.remove("docs-menu-attached-button-above");
 		menuHolder.style.display = "none";
@@ -945,32 +1006,26 @@ var vertSheetsMain;
 	// companionSideButton.addEventListener("mousedown",function(){resizeSidebar("side")});
   	//
     window.addEventListener("resize", windowResized);
+
+	var addSheetButton = document.querySelector('.docs-sheet-add');
+	addSheetButton.addEventListener('mousedown',addSheetCalled);
+
+	//TODO: Handle all sheet selection button
   
     var sheetContainer = document.querySelector('.docs-sheet-container-bar');
     sheetContainer.addEventListener("mousedown", sheetSelected);
 })();
 
 function registerSideListen(){
-	var companionSideButton = document.querySelector('.companion-collapser-button');
+
+	//Log width so when we toggle we know where we were so we can wait for a change
 	var companionSidePanel = document.querySelector('.companion-app-switcher-container');
 	sidePanelWidth = companionSidePanel.offsetWidth;
-	//console.log(companionSideButton);
+
+	var companionSideButton = document.querySelector('.companion-collapser-button');
 	companionSideButton.addEventListener("mousedown",function(){resizeSidebar("side")});
 
 }
-
-// <div class="companion-collapser-button-container" aria-label="Toggle side panel" role="navigation">
-// 	<div class="app-switcher-button companion-collapser-button" aria-pressed="false" role="button" aria-label="Hide side panel" tabindex="0" style="user-select: none;">
-// 	<div class="app-switcher-button-icon-background"></div>
-// 	<div class="app-switcher-button-icon-container">
-// 	<svg class="app-switcher-button-icon" version="1.1" id="Layer_1" x="0px" y="0px" width="20px" height="20px" viewBox="0 0 24 24" enable-background="new 0 0 24 24" xml:space="preserve" fill="#5F6368">
-// 	<path d="M8.59,16.59L13.17,12L8.59,7.41L10,6l6,6l-6,6L8.59,16.59z"></path>
-// 	<path fill="none" d="M0,0h24v24H0V0z"></path>
-// 	</svg>
-// 	</div>
-// 	</div>
-// 	</div>
-
 
 //#endregion
 
