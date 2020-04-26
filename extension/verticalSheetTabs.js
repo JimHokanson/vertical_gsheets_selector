@@ -19,22 +19,20 @@ Next steps
 8. DONE fix clicking - color the whole sheet
 9. DONE add indictor for resizing
 10. try resizing sheet text on dragging instead of showing a temporary line
-11. allow resizing in empty space in sidebar ...
+11. DONE allow resizing in empty space in sidebar ...
 12. DONE make border of sheets black to avoid strange color when selected
 13. support move sheet detection
    - on mouse down fire a listener that looks for mouse up
+14. support detecting sheet selection when clicking on all-sheets
 
-//Sidebar structure
-//----------------------------------
-	//sidebar
-	//   - sidebar-header
-	//	     - sidebar-title
-	//		 - sidebar-close
-	//			 - docs-icon goog-inline-block
-	//			     - docs-icon-close-white
-	//	 - sidebar-content
-	//	     - jim-links-container (ID)
-
+//Scrollbar
+//- need to adjust after it has been adjusted already by browser
+//- need to consider all resize events AND sheet changes
+//- z-index needs to go high otherwise not visible
+//- left would need to change to shift over ...
+<div class="native-scrollbar native-scrollbar-ltr native-scrollbar-y" style="height: 229px; left: 1354px; top: 23.8889px; z-index: 50;">
+   <div style="width: 1px; height: 21151px;"></div>
+</div>
 
 //Delete, rename .docs-sheet-tab-menu
 <div class="goog-menu goog-menu-vertical docs-sheet-tab-menu goog-menu-noicon docs-menu-hide-mnemonics" role="menu" aria-haspopup="true" style="user-select: none; visibility: visible; left: 205.313px; top: 79.9827px; display: none;">
@@ -131,6 +129,7 @@ function createVSheetTag(sheetName){
 	//For manipulation later ...
 	tag.setAttribute('id','sidebar-' + sheetName);
 	tag.setAttribute('class','vsheet-main')
+	tag.style.flexShrink = '0';
 	tag.style.display = 'flex'; //For left right display of t2,t3
 	tag.style.overflow = 'hidden'; //If the sheet name is too long hide it until user resizes
 	tag.style.backgroundColor = '#f1f3f4';
@@ -195,9 +194,32 @@ function populateNavLinks(){
 		}
 
 		parent.appendChild(newTag);
-
 	}
 
+	var tag = document.createElement('div');
+	tag.style.flexGrow = '1';
+	tag.style.flexShrink = '1';
+	tag.style.width = '100%';
+	tag.style.flexBasis = '15px';
+
+	var t2 = document.createElement('div');
+	t2.setAttribute('class','vsheet-left');
+	t2.style.cursor = 'ew-resize';
+	t2.style.width = '5px';
+	t2.style.height = '100%';
+	//Not sure why width is not being respected with only 1 space
+	//t2.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+	tag.appendChild(t2);
+
+	var t3 = document.createElement('div');
+	tag.appendChild(t3);
+
+	parent.appendChild(tag);
+
+}
+
+function refreshNavLayout(){
+	populateNavLinks();
 }
 
 function createSidebar(){
@@ -254,15 +276,25 @@ function createSidebar(){
 	var vh2 = document.createElement('div');
 	vh2.style.padding = '10px 10px 10px 5px';
 	vh2.textContent = 'Sheets';
+	//Since we haven't implemented all listeners, let's have this be
+	//a fallback so that it is easy to refresh if things have changed
+	vh2.style.cursor = 'pointer';
+	vh2.addEventListener('mousedown',refreshNavLayout)
 	vh.appendChild(vh2);
+
+	//TODO: Create div that occupies space between name and close ...
+	var vh4 = document.createElement('div');
+	vh4.style.flexGrow = 1;
+	vh4.style.width = '100%';
+	vh.appendChild(vh4);
 
 	var vh3 = document.createElement('div');
 	vh3.setAttribute('id','vert-close');
-	vh3.style.width = "100%";
+	//vh3.style.width = "100%";
 	vh3.style.direction = 'rtl';
-	vh3.style.padding = '10px 0';
+	vh3.style.padding = '10px';
 	vh3.style.cursor = 'pointer';
-	vh3.innerHTML = '&nbsp; x &nbsp;';
+	vh3.innerHTML = 'x';
 	vh.appendChild(vh3);
 
 	//Note, I made a content area in case we add more than just the links ...
@@ -284,6 +316,8 @@ function createSidebar(){
 	jlc.style.borderStyle = 'solid';
 	jlc.style.boxSizing = 'border-box';
 	jlc.style.direction = 'ltr';
+	jlc.style.display = 'flex';
+	jlc.style.flexDirection = 'column';
 	jlc.addEventListener("mousedown",vsheetJimLinksClickCallback)
 
 	vc.appendChild(jlc);
