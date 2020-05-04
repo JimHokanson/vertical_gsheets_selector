@@ -23,4 +23,8 @@ This code is currently a work in progres. You can use it to display a sidebar th
 
 This is my first js project and currently the code needs to be cleaned up and documented. I still have a few features I want to add like listening for sheet deletions, renames, and selections from the main horizontal selector. I don't attempt to manipulate the data in the sheet in anyway, but still, use at your own risk.
 
+# TODO
 
+- fix resize to be more responsive, base on target width/height, not on being different
+- implement listener for rename
+- add button on icon menu for showing so that we don't need to show the text menu
