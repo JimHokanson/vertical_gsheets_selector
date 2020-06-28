@@ -11,7 +11,7 @@ Next steps
 2. DONE Add listener for bottom sheet select updating sidebar
 3. DONE resize by dragging
 	- cursor is in place for action - needs callbacks
-4. delete/rename listener
+4. delete listener
 5. DONE "add sheet" listener
    - add sheet puts a sheets to the right of the current sheet
 6. DONE fix menu loading - run delayed check instead of fixed wait
@@ -24,6 +24,7 @@ Next steps
 13. support move sheet detection
    - on mouse down fire a listener that looks for mouse up
 14. support detecting sheet selection when clicking on all-sheets
+15. rename listener
 
 //Scrollbar
 //- need to adjust after it has been adjusted already by browser
@@ -75,6 +76,7 @@ var xyz = 1;
 var sidePanelWidth;
 var n_tries = 0;
 var activeTag;
+var tagFromError;
 var sheetMenuListenerInitialized = false;
 //Not sure what to make these values ...
 var sidebarMinWidth = 80;
@@ -105,18 +107,60 @@ function getSidebarTag(){
 	return document.getElementById('vert-sidebar');
 }
 
+function implementChildListUpdate(){
+	console.log('Updating based on childList update')
+	populateNavLinks();
+}
+
+var childListTimer;
+const childListObserverCallback = function(mutationsList, observer) {
+
+	//If we want to be lazy we can just clear the timeout and set a new
+	//one to occur after 1s
+	//clearTimeout(timer);
+	//timer = setTimeout(logout, 10000);
+
+	// Use traditional 'for loops' for IE 11
+	for(let mutation of mutationsList) {
+		if (mutation.type === 'childList') {
+			//Delete
+
+			clearTimeout(childListTimer);
+			childListTimer = setTimeout(implementChildListUpdate,500)
+			//TODO: on delete a lot of nodes get deleted, we only care about 1
+			//which is why I think timeout would be good
+
+			//console.log('child node added/removed')
+
+			//console.log('A child node has been added or removed.');
+			//console.log(mutation)
+		}else{
+			//I don't think anything else will go through
+			console.log('mutation type: ' + mutation.type)
+		}
+		// else if (mutation.type === 'attributes' &&  mutation.attributeName === 'class') {
+		// 	console.log(mutation)
+		// 	//console.log('The ' + mutation.attributeName + ' attribute was modified.');
+		// }
+	}
+};
+
+var observer;
 function launchSideBar(){
 
-	//  We launch from the menu so it can't be hidden
-
-	//var viewModeButton = document.getElementById('viewModeButton');
-	//var tooltip = viewModeButton.getAttribute('data-tooltip')
-	//Hidden => Show the menu
-	//Not-Hidden => Hide the menu
-	//menuIsHidden = tooltip[0] === 'S';
-
-
 	showSidebar();
+
+	if (observer === undefined) {
+		// Create an observer instance linked to the callback function
+		observer = new MutationObserver(childListObserverCallback);
+
+		// Start observing the target node for configured mutations
+		var outerContainer = document.querySelector('.docs-sheet-outer-container')
+		//https://developer.mozilla.org/en-US/docs/Web/API/MutationObserverInit
+		//const config = { attributes: true, childList: true, subtree: true };
+		const config = {childList: true, subtree: true};
+		observer.observe(outerContainer, config);
+	}
 
 	populateNavLinks();
 
@@ -188,7 +232,6 @@ function populateNavLinks(){
 
 		var newTag = createVSheetTag(sheetName)
 
-		//TODO: Make constant ...
 		if (sourceTag.classList.contains(ACTIVE_SHEET_TAB_CLASS)){
 			setActive(newTag);
 		}
@@ -466,6 +509,9 @@ function vsheetFinalizeResize(event){
 
 //#region Sidebar sheet actions
 
+/**
+ * @param {HTMLElement} tag - a vsheet tag
+ */
 function moveVSheetUp(tag){
 	if (tag) {
 		var parent = getVSheetsHolder();
@@ -479,7 +525,66 @@ function moveVSheetDown(tag){
 	}
 }
 
+function deleteSheet(tag){
+	console.log('Delete sheet called')
+	console.log(tag)
+	if (tag) {
+		//Note, from where this is called, we may or may not delete the sheet
+		//
+		//At this point the user is prompted to as to whether or not they
+		//really want to delete the sheet.
+
+		var modal = document.querySelector('.modal-dialog-buttons');
+		console.log(modal)
+		if (modal) {
+			var okTag = modal.getElementsByTagName('ok');
+			console.log(okTag)
+			okTag.addEventListener("mousedown", function () {
+				reallyDeleteSheet(tag);
+			});
+			//TODO: Do we need to hold onto this listener and delete it ...
+		}
+
+		//<div class="modal-dialog-buttons">
+		//   <button name="cancel">Cancel</button>
+		//   <button name="ok" class="goog-buttonset-default goog-buttonset-action">OK</button>
+		//</div>
+	}
+}
+
+function reallyDeleteSheet(tag){
+	//Called by deleteSheet after user confirms they really want to delete the sheet
+	//
+	//In addition to deleting, we then need to determine who gets to be active
+	//next ...
+	console.log(tag)
+	if (tag){
+		//When deleting, the selection goes left, unless we are first then it goes to the right
+		//switchToActive
+		var left = tag.previousElementSibling;
+		if (left){
+			console.log('going left')
+			console.log(left)
+			switchToActive(left)
+		}else{
+			console.log('going left')
+			console.log(tag.nextElementSibling)
+			switchToActive(tag.nextElementSibling)
+		}
+		tag.parentNode.removeChild(tag)
+	}
+
+}
+
+/**
+ * Returns the container which holds the vertical sheets. The children
+ * of this element are the vsheet tags
+ * @returns {HTMLElement}
+ */
 function getVSheetsHolder(){
+	//TODO: In some cases it looks like this may be being used when
+	// tag.parentNode would be a better call
+
 	return document.getElementById('jim-links-container');
 }
 
@@ -678,22 +783,35 @@ function windowResized(){
 
  */
 function addSheetCalled(){
-	var hSheet = getHSheetByVSheet(activeTag);
-	if (hSheet) {
-		waitUntilNotActiveSheet(0, hSheet, respondToAddSheet);
-	}
+	//We'll handle this in the observer ...
+
+	// var hSheet = getHSheetByVSheet(activeTag);
+	// if (hSheet) {
+	// 	waitUntilNotActiveSheet(0, hSheet, respondToAddSheet);
+	// }
 }
 
+/**
+ * Calls a function once the input tag is no longer active
+ * @param {number} i - A counter on how many times the function has been called
+ * @param {HTMLElement} tag - hsheet tag which is initially active
+ * @param {function} fcn - Function to call when 'tag' is no longer active
+ */
 function waitUntilNotActiveSheet(i,tag,fcn){
+
 	if (tag.classList.contains(ACTIVE_SHEET_TAB_CLASS)){
 		if (i < 20) {
 			setTimeout(function () {
 				waitUntilNotActiveSheet(i+1, tag, fcn)
 			},200)
 		}else{
+			console.log('Below is the tag which failed')
+			tagFromError = tag; //Promote to global for debugging
+			console.log(tag)
 			console.log('TIMEOUT FAILURE for ' + 'waitUntilNotActiveSheet');
 		}
 	}else{
+		//When no longer active, call the function
 		fcn(tag);
 	}
 }
@@ -761,6 +879,12 @@ function clickSheet(sheetName){
 
 }
 
+/**
+ * Handles selection events from menu that pops up when right clicking on a 
+ * sheet tab
+ * @param {Event} event - Event object from listener
+ * @returns {void}
+ */
 function sheetMenuPopupSelected(event){
 
 	var action = event.target.innerText.toLowerCase();
@@ -772,6 +896,8 @@ function sheetMenuPopupSelected(event){
 			moveVSheetDown(activeTag);
 			break;
 		case 'delete':
+			//Handle with the observer
+			//deleteSheet(activeTag);
 			//NYI
 			break;
 	}
@@ -819,7 +945,7 @@ function initializeSheetMenuListener2(menu){
 }
 
 function sheetSelected(event){
-
+	//Note both left and right click make the sheet active
   //left click
   //   - make sheet active
   //   - bring out dropdown if on active sheet already
@@ -848,8 +974,11 @@ function sheetSelected(event){
   	 	 //Noteably : <div class="docs-sheet-tab-color" style="background: transparent;"></div>
   	 	 //We could hard code in this check, but I am going to just go to the parent and look down
   	     tag = closestClass(tag,"docs-sheet-tab");
-  	     //If we use textContent we sometimes get a hidden leading 0
-  	     var sheetName = tag.innerText;
+
+  	     //Note, comments can show up here, so we need to now go down to the name
+		 //tag otherwise we'll get the # of comments as well in the name
+		 var nameTag = tag.querySelector('.docs-sheet-tab-name');
+  	     var sheetName = nameTag.innerText;
   	     //console.log(sheetName)
 		 var vsheetTag = getVSheetByName(sheetName);
   	     //console.log(sidebarTag)
@@ -1015,7 +1144,11 @@ function createMenu(menuTag){
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+
 //#region Main
+
+
+
 var vertSheetsMain;
 (vertSheetsMain = function vertSheetInitializer(){
     //TODO: Instead just check periodically and delay if necessary
@@ -1045,10 +1178,16 @@ var vertSheetsMain;
 	addSheetButton.addEventListener('mousedown',addSheetCalled);
 
 	//TODO: Handle all sheet selection button
+
+
+
   
     var sheetContainer = document.querySelector('.docs-sheet-container-bar');
     sheetContainer.addEventListener("mousedown", sheetSelected);
 })();
+
+
+
 
 function registerSideListen(){
 
