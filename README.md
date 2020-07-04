@@ -39,11 +39,11 @@ This is my first js project and currently the code needs to be cleaned up and do
 - Duplicate - DONE
 - Delete - DONE
 
-**Other Features**
+**Other Completed Features**
 
-- resize via dragging side of panel - DONE
-- resize on hiding menus - DONE - sometime flaky ...
-- force rerender - DONE, click on the word "sheets" on top to force rerendering
+- resize via dragging side of panel
+- resize on hiding menus - sometimes flaky ...
+- force rerender - click on the word "sheets" on top to force rerendering
 
 TODO
 
@@ -52,3 +52,5 @@ TODO
 - fix resize to be more responsive, base on target width/height, not on being different - use observers ...
 - clean up code!!!!
 - make force rerender more obvious (add refresh button?)
+- drag and drop divs
+- on close download window, change height - NYI
