@@ -227,6 +227,15 @@ function populateNavLinks(){
 	for (var i = 0; i < sheetTags.length; i++) {
 
 		var sourceTag = sheetTags[i];
+		
+		//Added this to support not showing hidden tabs
+		//
+		//Eventually it would be good to have a mode which toggles this behavior
+		//i.e., show or hide hidden tabs
+		if (sourceTag.style.display === 'none'){
+			continue;
+		}
+		
 		var spanTag = sourceTag.querySelector('.docs-sheet-tab-name');
 		let sheetName = spanTag.textContent;
 
@@ -1174,7 +1183,7 @@ var vertSheetsMain;
   	//
     window.addEventListener("resize", windowResized);
 
-	var addSheetButton = document.querySelector('.docs-sheet-add');
+	var addSheetButton = document.querySelector('.docs-sheet-add-button');
 	addSheetButton.addEventListener('mousedown',addSheetCalled);
 
 	//TODO: Handle all sheet selection button
