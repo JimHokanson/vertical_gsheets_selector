@@ -646,6 +646,11 @@ function resizeSidebar(type){
 // - initialization 'init'
 // - toggleMenuVisibility 'menu'
 // - resizing
+//
+//
+//	- 'menu'
+//		- the small window on the right has been clicked (or unclicked?). This sidebar
+//		  shows Google Maps, Keep, etc. Note this is a Google thing, not a Jim thing.
 
 	var gridScrollDiv = document.querySelector('.grid-scrollable-wrapper');
 	var companionDiv = document.querySelector('.docs-companion-app-switcher-container');
@@ -1169,9 +1174,10 @@ var vertSheetsMain;
   
     createSidebar();
   
-    //The view mode button toggles between hiding and showing the menus. When the menus are hidden
-    //sheets move up and to the right. The rightward movement is from hiding the Google Apps menu (calendar, tasks, & keep).
-    var viewModeButton = document.getElementById('viewModeButton');
+    //The view mode button (bottom right of screen) toggles between hiding and showing 
+    //the menus. When the menus are hidden sheets move up and to the right. The rightward 
+    //movement is from hiding the Google Apps menu (calendar, tasks, & keep).
+    var viewModeButton = document.querySelector('.app-switcher-button');
     viewModeButton.addEventListener("mousedown",hideOrShowMenus);
 
     //var sidePanelButton = document.querySelector('.companion-collapser-button-container');
